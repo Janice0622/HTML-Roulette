@@ -1,0 +1,404 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+		<style>
+		</style>
+    </head>
+    <body style="background-color: #DAF7A6">
+        <table align="center">
+            <tr>
+                <td rowspan="2">
+                    <canvas id="canvas" width="500" height="500" style="position:absolute; top:0px; left:0px;"></canvas>
+                </td>
+                <td>
+                    <table border="none" bgcolor="white" width="700" height="350" style="text-align: center; position:absolute; top:60px; left:600px;font-size: 25px;">
+                        <tr style="text-align:center;">
+                            <td id=10bet class="notSelected" onclick="setBet(10,this)">$10</td>
+                            <td id=20bet class="notSelected" onclick="setBet(20,this)">$20</td>
+                            <td id=50bet class="notSelected" onclick="setBet(50,this)">$50</td>
+                        </tr>
+                        <tr>
+                            <td id=1 class="notBet" onclick="putMoney(this)">1</td>
+                            <td id=2 class="notBet" onclick="putMoney(this)">2</td>
+                            <td id=3 class="notBet" onclick="putMoney(this)">3</td>
+                        </tr>
+                        <tr>
+                            <td id=4 class="notBet" onclick="putMoney(this)">4</td>
+                            <td id=5 class="notBet" onclick="putMoney(this)">5</td>
+                            <td id=6 class="notBet" onclick="putMoney(this)">6</td>
+                        </tr>
+                        <tr>
+                            <td id=7 class="notBet" onclick="putMoney(this)">7</td>
+                            <td id=8 class="notBet" onclick="putMoney(this)">8</td>
+                            <td id=9 class="notBet" onclick="putMoney(this)">9</td>
+                        </tr>
+                        <tr>
+                            <td id=10 class="notBet" onclick="putMoney(this)">10</td>
+                            <td id=11 class="notBet" onclick="putMoney(this)">11</td>
+                            <td id=12 class="notBet" onclick="putMoney(this)">12</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="circle" style="font-size: 25px; position:absolute; top:500px; left:800px;">
+						還剩下$<span id="money">1000</span>
+					</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <input type="button" value="start" style=" display: block; margin: 0 auto; height:80px; width:100px; font-size:30px; position:absolute; top:475px; left:1050px;" id="spin" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div style="text-align: center; color: white;"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div id="log" style="color:green; position:absolute; top:500px; left:350px;"></div>
+                </td>
+            </tr>
+        </table>
+        <script>
+            var currentBet = 0;
+            var betColor = "white";
+
+            var rouletteResult;
+
+            var log = "";
+            var bet;
+
+            var options = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+            var startAngle = 1.425 * Math.PI;
+            var arc = Math.PI / (options.length / 2);
+            var spinTimeout = null;
+
+            var spinArcStart = 10;
+            var spinTime = 0;
+            var spinTimeTotal = 0;
+
+            var ctx;
+
+            document.getElementById("spin").addEventListener("click", spin);
+
+            function setBet(money, obj) {
+                if(obj.className == "notSelected") {
+                    clearSelection();
+                    obj.className = "selected";
+                    currentBet = money;
+                    switch(money) {
+                        case 10:
+                            betColor = "red";
+                            obj.bgColor = betColor;
+                            break;
+                        case 20:
+                            betColor = "green"
+                            obj.bgColor = betColor;
+                            break;
+                        case 50:
+                            betColor = "yellow";
+                            obj.bgColor = betColor;
+                            break;
+                    }
+                }
+                else {
+                    currentBet = 0;
+                    betColor = "white";
+                    obj.className = "notSelected";
+                    obj.bgColor = "white";
+                }
+                console.log(currentBet);
+            }
+
+            function clearSelection() {
+                currentBet = 0;
+                betColor = "white";
+                document.getElementById("10bet").bgColor = betColor;
+                document.getElementById("20bet").bgColor = betColor;
+                document.getElementById("50bet").bgColor = betColor;
+            }
+
+            function putMoney(obj) {
+                var money = parseInt(document.getElementById("money").innerHTML);
+                if(obj.bgColor == betColor) {
+                    obj.className = "notBet";
+                    obj.bgColor = "white";
+                    money += currentBet;
+                }
+                else {
+                    switch(obj.bgColor) {
+                        case "red":
+                            money += 10;
+                            break;
+                        case "green":
+                            money += 20;
+                            break;
+                        case "yellow":
+                            money += 50;
+                            break;
+                        case "white":
+                            break;
+                    }
+                    if(checkMoneyBelowZero(money)) {
+                        obj.className = "bet";
+                        obj.bgColor = betColor;
+                        money -= currentBet;
+                    }
+                    else {
+                        switch(obj.bgColor) {
+                        case "red":
+                            money -= 10;
+                            break;
+                        case "green":
+                            money -= 20;
+                            break;
+                        case "yellow":
+                            money -= 50;
+                            break;
+                        case "white":
+                            break;
+                        }
+                    }
+                }
+                document.getElementById("money").innerHTML = money;
+                console.log(obj.innerHTML + " " + obj.className + " " + currentBet);
+            }
+
+            function checkMoneyBelowZero(money) {
+                var predictMoney = money - currentBet;
+                if(predictMoney < 0) {
+                    window.alert("沒錢了辣 !");
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            }
+
+            function checkGameOver() {
+                if(parseInt(document.getElementById("money").innerHTML) == 0) {
+                    window.alert("遊戲結束!!");
+                    window.alert("重新整理");
+                    location.reload();
+                }
+            }
+
+            function checkWin() {
+                var num;
+                log = "";
+                for(var i = 1 ; i <= 12 ; i++) {
+                    num = document.getElementById(i);
+                    if(num.className == "bet") {
+                        if(i == rouletteResult) {
+                            console.log("WIN");
+                            giveMoney(num);
+                            log +=  "你在" + num.innerHTML +"號贏了$" + bet +"<br>";
+                        }
+                        else {
+                            console.log("LOSE");
+                            var loseMoney = 0;
+                            switch(num.bgColor) {
+                                case "red":
+                                    loseMoney = 10;
+                                    break;
+                                case "green":
+                                    loseMoney = 20;
+                                    break;
+                                case "yellow":
+                                    loseMoney = 50;
+                                    break;
+                            }
+                            log +=  "你在" + num.innerHTML +"號輸了$" + loseMoney +"<br>";
+                        }
+                    }
+                    else {
+                        console.log("NO BET");
+                    }
+                }
+
+                document.getElementById("log").innerHTML = log;
+
+                resetWheel();
+                resetTable();
+                checkGameOver();
+            }
+
+            function giveMoney(obj) {
+                var money = parseInt(document.getElementById("money").innerHTML);
+                switch(obj.bgColor) {
+                    case "red":
+                        bet = 10;
+                        break;
+                    case "green":
+                        bet = 20;
+                        break;
+                    case "yellow":
+                        bet = 50;
+                        break;
+                }
+                money += bet * 2;
+                document.getElementById("money").innerHTML = money;
+            }
+
+            function resetTable() {
+                currentBet = 0;
+                betColor = "white";
+                document.getElementById("10bet").bgColor = betColor;
+                document.getElementById("10bet").className = "notSelected";
+                document.getElementById("20bet").bgColor = betColor;
+                document.getElementById("20bet").className = "notSelected";
+                document.getElementById("50bet").bgColor = betColor;
+                document.getElementById("50bet").className = "notSelected";
+                for(var i = 1 ; i <= 12 ; i++) {
+                    document.getElementById(i).bgColor = betColor;
+                    document.getElementById(i).className = "notBet";
+                }
+            }
+
+            function resetWheel() {
+                startAngle = 1.425 * Math.PI;
+                arc = Math.PI / (options.length / 2);
+                spinTimeout = null;
+
+                spinArcStart = 10;
+                spinTime = 0;
+                spinTimeTotal = 0;
+
+                drawRouletteWheel();
+            }
+
+            function byte2Hex(n) {
+                var nybHexString = "0123456789ABCDEF";
+                return String(nybHexString.substr((n >> 4) & 0x0F,1)) + nybHexString.substr(n & 0x0F,1);
+            }
+
+            function RGB2Color(r,g,b) {
+                return '#' + byte2Hex(r) + byte2Hex(g) + byte2Hex(b);
+            }
+
+            function getColor(item) {
+                if(item == 0) {
+                    return RGB2Color(0, 145, 0);
+                }
+                
+                red = item % 2 * 255;
+                green = 0;
+                blue = 0;
+                
+                return RGB2Color(red,green,blue);
+            }
+
+            function drawRouletteWheel() {
+                var canvas = document.getElementById("canvas");
+                if (canvas.getContext) {
+                    var outsideRadius = 200;
+                    var textRadius = 160;
+                    var insideRadius = 125;
+
+                    ctx = canvas.getContext("2d");
+                    ctx.clearRect(0,0,500,500);
+
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 2;
+
+                    ctx.font = 'bold 24px Helvetica, Arial';
+
+                    for(var i = 0; i < options.length; i++) {
+                        var angle = startAngle + i * arc;
+                        //ctx.fillStyle = colors[i];
+
+                        ctx.beginPath();
+                        ctx.arc(250, 250, insideRadius, 0, 2*Math.PI);
+                        ctx.fillStyle="#DAF7A6";
+                        ctx.stroke();
+                        ctx.fill();
+
+                        ctx.fillStyle = getColor(i);
+
+                        ctx.beginPath();
+                        ctx.arc(250, 250, outsideRadius, angle, angle + arc, false);
+                        ctx.arc(250, 250, insideRadius, angle + arc, angle, true);
+						ctx.arc(250, 250, 140, angle + arc, angle, true);
+                        ctx.stroke();
+                        ctx.fill();
+
+                        ctx.save();
+                        ctx.shadowOffsetX = -1;
+                        ctx.shadowOffsetY = -1;
+                        ctx.shadowBlur    = 0;
+                        ctx.shadowColor   = "black";
+                        ctx.fillStyle = "white";
+                        ctx.translate(250 + Math.cos(angle + arc / 2) * textRadius, 
+                                        250 + Math.sin(angle + arc / 2) * textRadius);
+                        ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                        var text = options[i];
+                        ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+                        ctx.restore();
+                    } 
+
+                    //Arrow
+                    ctx.fillStyle = "green";
+                    ctx.beginPath();
+                    ctx.moveTo(250 - 8, 250 - (outsideRadius + 35));
+					ctx.lineTo(250 + 8, 250 - (outsideRadius + 35));
+					ctx.lineTo(250 + 8, 250 - (outsideRadius +15));
+					ctx.lineTo(250 + 18, 250 - (outsideRadius +15));
+					ctx.lineTo(250 + 0, 250 - (outsideRadius +0));
+					ctx.lineTo(250 - 18, 250 - (outsideRadius +15));
+					ctx.lineTo(250 - 8, 250 - (outsideRadius +15));
+					ctx.lineTo(250 - 8, 250 - (outsideRadius + 35));
+                    ctx.fill();
+                }
+            }
+
+            function spin() {
+                spinAngleStart = Math.random() * 10 + 10;
+                spinTime = 0;
+                spinTimeTotal = Math.random() * 3 + 4 * 1000;
+                rotateWheel();
+            }
+
+            function rotateWheel() {
+                spinTime += 30;
+                if(spinTime >= spinTimeTotal) {
+                    stopRotateWheel();
+                    return;
+                }
+                var spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+                startAngle += (spinAngle * Math.PI / 180);
+                drawRouletteWheel();
+                spinTimeout = setTimeout('rotateWheel()', 30);
+            }
+
+            function stopRotateWheel() {
+                clearTimeout(spinTimeout);
+                var degrees = startAngle * 180 / Math.PI + 90;
+                var arcd = arc * 180 / Math.PI;
+                var index = Math.floor((360 - degrees % 360) / arcd);
+                ctx.save();
+                ctx.font = 'bold 30px Helvetica, Arial';
+                ctx.fillStyle="black";
+                rouletteResult = options[index]
+                ctx.fillText(rouletteResult, 250 - ctx.measureText(rouletteResult).width / 2, 250 + 10);
+                ctx.restore();
+
+                checkWin();
+            }
+
+            function easeOut(t, b, c, d) {
+                var ts = (t/=d)*t;
+                var tc = ts*t;
+                return b+c*(tc + -3*ts + 3*t);
+            }
+
+            drawRouletteWheel();
+        </script>
+    </body>
+</html>
